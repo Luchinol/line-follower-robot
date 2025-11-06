@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pio run:*)",
+      "Bash(platformio run)",
+      "Bash(Remove-Item \"C:\\Users\\Luchin\\Desktop\\Mecatrónica\\CarritoSeguidor\\src\\main.ino\")",
+      "Bash(powershell.exe -Command \"platformio run\")",
+      "Bash(where.exe:*)",
+      "Bash(C:UsersLuchin.platformiopenvScriptsplatformio.exe run)",
+      "Bash(dir:*)",
+      "Bash(git add:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
