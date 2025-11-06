@@ -1,44 +1,58 @@
-# Carrito Seguidor de Línea ESP32-S3
+# 🤖 Robot Seguidor de Línea - ESP32-S3
 
-Sistema de seguimiento de línea autónomo con **ESP32-S3**, 3 sensores IR y control PID. El proyecto ha sido simplificado para usar una configuración robusta y fácil de calibrar.
+Sistema de seguimiento de línea autónomo con **ESP32-S3**, **5 sensores IR** y **control PID adaptativo**. Diseñado para máxima precisión y estabilidad en trayectorias complejas.
 
 ## 🎯 Hardware Utilizado
 
 | Componente | Modelo | Cantidad |
 |------------|--------|----------|
 | **Microcontrolador** | ESP32-S3 WROOM (FREENOVE) | 1 |
-| **Sensores IR** | HW-511 (o similar) individuales | 3 |
+| **Sensores IR** | HW-511 (analógicos individuales) | 5 |
 | **Puente H** | L298N | 1 |
 | **Motores DC** | Con reductora 1:48 | 2 |
 | **Batería** | LiPo 2S 7.4V o 6xAA | 1 |
 
-> **Nota**: El código está configurado actualmente para 3 sensores, pero la estructura soporta configuraciones más complejas.
+### 📐 Especificaciones de Sensores
+
+- **Tipo**: HW-511 (salida analógica)
+- **Valores calibrados**:
+  - BLANCO: ~100 ADC (12-bit)
+  - NEGRO: ~2000 ADC
+- **Resolución espacial**: 5 sensores con pesos -2, -1, 0, +1, +2
+- **Rango de error**: -200 a +200
 
 ## ⚡ Inicio Rápido
 
-### 1. Conexiones (Configuración Actual)
+### 1. Conexiones Hardware
 
 ```
 MOTORES (ESP32-S3 → L298N):
   GPIO 12 → ENA    // PWM Motor Derecho
-  GPIO 11 → IN1
-  GPIO 18 → IN2
+  GPIO 11 → IN1    // Dirección Motor Derecho
+  GPIO 18 → IN2    // Dirección Motor Derecho
 
   GPIO 13 → ENB    // PWM Motor Izquierdo
-  GPIO 14 → IN3
-  GPIO 21 → IN4
+  GPIO 14 → IN3    // Dirección Motor Izquierdo
+  GPIO 21 → IN4    // Dirección Motor Izquierdo
 
-SENSORES (3x HW-511 → ESP32-S3):
-  GPIO 3 → Sensor Izquierdo (A0)
-  GPIO 4 → Sensor Central   (A0)
-  GPIO 5 → Sensor Derecho  (A0)
+SENSORES (5x HW-511 → ESP32-S3):
+  Array de navegación (izquierda → derecha):
+
+  GPIO 6 → Sensor 1 (IZQ+2, extremo izquierdo)  | Peso: -2
+  GPIO 5 → Sensor 2 (IZQ+1)                     | Peso: -1
+  GPIO 4 → Sensor 3 (CENTRO)                    | Peso:  0
+  GPIO 8 → Sensor 4 (DER+1)                     | Peso: +1
+  GPIO 7 → Sensor 5 (DER+2, extremo derecho)    | Peso: +2
 
 ALIMENTACIÓN:
   Batería 7.4V → L298N (+12V)
-  L298N 5V → Sensores VCC
-  L298N 5V → ESP32 VIN (Opcional si se usa USB)
-  GND → Conectar todos los GND juntos.
+  L298N 5V OUT → Sensores VCC (todos)
+  L298N 5V OUT → ESP32-S3 VIN (si no usas USB)
+  GND común → Conectar TODOS los GND juntos
 ```
+
+> ⚠️ **IMPORTANTE**: Los pines ADC del ESP32-S3 **NO deben** configurarse con `pinMode()`.
+> El framework Arduino los configura automáticamente en modo alta impedancia al usar `analogRead()`.
 
 ### 2. Programar
 
@@ -53,14 +67,23 @@ pio run -t upload && pio device monitor
 
 ### 3. Calibrar Sensores
 
-Este es el paso más importante.
+**Este es el paso más crítico para el correcto funcionamiento.**
 
 ```
-1. Abrir el Monitor Serial (baudrate: 115200).
-2. Enviar el comando 'c' para iniciar la calibración.
-3. Durante 8 segundos, mover el robot manualmente para que los 3 sensores pasen varias veces sobre la LÍNEA NEGRA y el FONDO BLANCO.
-4. El sistema aprenderá los valores mínimos y máximos y estará listo.
+1. Abrir el Monitor Serial (baudrate: 115200)
+2. Enviar el comando 'c' para iniciar calibración
+3. Durante 8 segundos, mover el robot manualmente asegurando que:
+   - TODOS los 5 sensores pasen sobre la LÍNEA NEGRA
+   - TODOS los 5 sensores pasen sobre la superficie BLANCA
+   - Se recorra varias veces para capturar valores extremos
+4. El sistema guarda automáticamente los valores min/max de cada sensor
+5. Verifica los valores con el comando 's' (estado)
 ```
+
+**Valores esperados después de calibración:**
+- Sensores sobre BLANCO: ~100-300 ADC
+- Sensores sobre NEGRO: ~1800-2200 ADC
+- Umbral automático: punto medio entre min/max
 
 ### 4. ¡A rodar!
 
@@ -87,19 +110,49 @@ El robot iniciará el seguimiento de línea automáticamente después de la cali
 
 ## 🔧 Características Principales
 
-### Control PID
-El corazón del robot es un controlador PID que calcula la corrección necesaria para mantenerse en la línea. 
-- **`Kp` (Proporcional):** Reacciona al error actual. Un `Kp` alto da una respuesta rápida pero puede causar oscilaciones.
-- **`Ki` (Integral):** Corrige errores pequeños y persistentes a lo largo del tiempo.
-- **`Kd` (Derivativo):** Amortigua la respuesta y previene el exceso de corrección (overshoot).
+### Control PID Adaptativo con 3 Modos
 
-Con la configuración actual de 3 sensores, el sistema **no usa el PID adaptativo** que se menciona en los comentarios del código, sino que utiliza un único conjunto de parámetros PID.
+El sistema ajusta automáticamente los parámetros PID según la dificultad de la trayectoria:
 
-### Lógica de Sensores
-- Se leen 3 sensores analógicos.
-- Durante la calibración, se registran los valores mínimos (blanco) y máximos (negro) para cada sensor.
-- Se calcula una posición ponderada de la línea, dando un valor de error entre -100 (muy a la izquierda) y +100 (muy a la derecha).
-- Este error es la entrada para el controlador PID.
+#### **Modo RECTA** (trayectorias rectas)
+- **Kp = 1.2** - Respuesta proporcional suave
+- **Ki = 0.01** - Corrección integral mínima
+- **Kd = 0.8** - Amortiguación para evitar oscilaciones
+- **Velocidad**: 120 PWM (conservadora)
+
+#### **Modo CURVA SUAVE** (curvas graduales)
+- **Kp = 1.8** - Mayor respuesta proporcional
+- **Ki = 0.02** - Integral ligeramente mayor
+- **Kd = 1.0** - Mayor amortiguación
+- **Velocidad**: 85% de velocidad base
+
+#### **Modo CURVA CERRADA** (curvas muy pronunciadas)
+- **Kp = 2.5** - Respuesta agresiva
+- **Ki = 0.0** - Sin integral (evita wind-up)
+- **Kd = 1.2** - Amortiguación máxima
+- **Velocidad**: 60% de velocidad base (90 PWM)
+
+### Algoritmo de Detección de Línea
+
+**5 sensores con pesos espaciales:**
+```
+[-2]  [-1]  [0]  [+1]  [+2]
+ IZQ   IZQ  CEN  DER   DER
+ +2    +1        +1    +2
+```
+
+**Cálculo de error ponderado:**
+```cpp
+error = Σ(valor_normalizado[i] × peso[i]) / Σ(valor_normalizado[i])
+```
+
+**Rango de error:** -200 (extremo izquierdo) a +200 (extremo derecho)
+
+**Ventajas de 5 sensores:**
+- ✅ Mayor resolución espacial (vs 3 sensores)
+- ✅ Mejor anticipación en curvas
+- ✅ Detección más precisa del centro de línea
+- ✅ Permite PID más suave (menos oscilaciones)
 
 ### Persistencia de Configuración (NVS)
 Gracias al módulo `nvs_config.h`, puedes ajustar los parámetros PID y la velocidad base a través del monitor serial y guardarlos. No se perderán al apagar el robot.
@@ -114,25 +167,46 @@ Gracias al módulo `nvs_config.h`, puedes ajustar los parámetros PID y la veloc
 | **Un motor gira más lento**| Ajusta el `FACTOR_MOTOR_IZQUIERDO` o `FACTOR_MOTOR_DERECHO` en `src/config.h`. |
 | **No responde a comandos** | Verifica que el baudrate del monitor serial sea `115200` y que la línea termine en `NL & CR`. |
 
-## 📂 Estructura del Código
+## 📂 Estructura del Proyecto
 
 ```
 CarritoSeguidor/
-├── README.md                # Esta guía
-├── platformio.ini           # Configuración de PlatformIO
+├── README.md                    # 📖 Esta guía completa
+├── platformio.ini               # ⚙️  Configuración de PlatformIO
+├── LICENSE                      # 📄 Licencia MIT
+├── .gitignore                   # 🚫 Archivos excluidos de Git
 │
-├── src/                     # Código fuente principal
-│   ├── main.cpp             # Lógica principal, máquina de estados y comandos
-│   ├── config.h             # ⭐ TODOS los pines y parámetros importantes
-│   ├── sensores.h           # Lógica para leer y calibrar los 3 sensores
-│   ├── motores.h            # Control de bajo nivel de los motores
-│   ├── control_pid.h        # Implementación del controlador PID
-│   └── nvs_config.h         # Lógica para guardar/cargar configuración
+├── src/                         # 💻 Código fuente principal
+│   ├── main.cpp                 # 🎮 Lógica principal y comandos seriales
+│   ├── config.h                 # ⭐ Configuración completa (pines, PID, velocidades)
+│   ├── sensores.h               # 📡 Gestión de 5 sensores IR con calibración
+│   ├── motores.h                # 🚗 Control L298N con compensación de motores
+│   ├── control_pid.h            # 🎯 Controlador PID adaptativo (3 modos)
+│   └── nvs_config.h             # 💾 Persistencia en Flash (NVS)
 │
-└── docs/                    # Documentación detallada
-    ├── calibracion.md       # Guías de calibración
-    └── tuning_pid.md        # Guías para el ajuste del PID
+├── pruebas/                     # 🧪 Herramientas de diagnóstico
+│   ├── test_pines_adc.ino       # Test de lectura ADC de 5 sensores
+│   ├── test_sensores.ino        # Calibración y diagnóstico avanzado
+│   └── test_motores.ino         # Test de motores y compensación
+│
+├── docs/                        # 📚 Documentación técnica
+│   ├── calibracion.md           # Guía detallada de calibración
+│   └── tuning_pid.md            # Guía de ajuste fino del PID
+│
+├── DIAGRAMA_CONEXIONES.txt      # 📐 Diagrama ASCII de conexiones
+├── ESP32_S3_HARDWARE.md         # 🔌 Especificaciones del ESP32-S3
+└── diagrama_funciones.md        # 🗺️  Flujo de funciones del código
 ```
+
+### Archivos Clave
+
+| Archivo | Propósito |
+|---------|-----------|
+| **src/config.h** | ⭐ Configuración central: pines GPIO, parámetros PID, velocidades |
+| **src/sensores.h** | Lectura ADC, calibración automática, cálculo de error ponderado |
+| **src/control_pid.h** | PID con 3 modos adaptativos, anti-windup, filtro derivativo |
+| **src/main.cpp** | Máquina de estados, comandos seriales, lógica de navegación |
+| **pruebas/test_pines_adc.ino** | Test rápido para verificar lecturas de los 5 sensores |
 
 ## 📄 Licencia
 
