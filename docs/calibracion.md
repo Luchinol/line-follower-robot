@@ -1,16 +1,17 @@
-> **Nota Importante:** Esta guía fue escrita para una versión del código que usaba 10 sensores en dos arrays. La versión actual se ha simplificado a **3 sensores**. Los conceptos de calibración (encontrar mínimos y máximos) son exactamente los mismos, pero ignora las referencias a "array lejano" y "array cercano". El proceso de calibración actual funciona con los 3 sensores centrales.
-
 # Guía Completa de Calibración de Sensores IR
 
 La calibración es el paso **MÁS IMPORTANTE** para que tu robot siga la línea correctamente. Una mala calibración hará que el robot se comporte erráticamente sin importar qué tan bien ajustes el PID.
 
+> 📌 **Configuración actual:** 5 sensores HW-511 analógicos (GPIO 6, 5, 4, 8, 7)
+
 ## 📋 Tabla de Contenidos
 
-1. [¿Por qué calibrar?](#por-qué-calibrar)
-2. [Preparación](#preparación)
-3. [Proceso de Calibración](#proceso-de-calibración)
-4. [Verificación de Calibración](#verificación-de-calibración)
-5. [Problemas Comunes](#problemas-comunes)
+1. [¿Por qué calibrar?](#1-por-qué-calibrar)
+2. [Preparación](#2-preparación)
+3. [Proceso de Calibración](#3-proceso-de-calibración)
+4. [Verificación de Calibración](#4-verificación-de-calibración)
+5. [Problemas Comunes](#5-problemas-comunes)
+6. [Herramientas de Diagnóstico](#6-herramientas-de-diagnóstico)
 
 ---
 
@@ -18,32 +19,40 @@ La calibración es el paso **MÁS IMPORTANTE** para que tu robot siga la línea 
 
 ### 1.1 El Problema
 
-Cada sensor IR es ligeramente diferente. Sin calibración, el robot no puede interpretar las lecturas de forma fiable.
+Cada sensor IR HW-511 es ligeramente diferente y las condiciones ambientales varían. Sin calibración, el robot no puede interpretar las lecturas de forma fiable.
 
 ```
 // Ejemplo sin calibración:
-Sensor Izquierdo sobre BLANCO lee: 300
-Sensor Central sobre BLANCO lee: 450
+Sensor 1 (GPIO6) sobre BLANCO lee: 120 ADC
+Sensor 3 (GPIO4) sobre BLANCO lee: 180 ADC
 
-Sensor Izquierdo sobre NEGRO lee: 2800
-Sensor Central sobre NEGRO lee: 3200
+Sensor 1 sobre NEGRO lee: 1950 ADC
+Sensor 3 sobre NEGRO lee: 2150 ADC
 
 Problema: ¡El robot no tiene una referencia clara de qué es blanco y qué es negro!
 ```
 
 ### 1.2 La Solución
 
-La calibración le "enseña" al robot el rango de lecturas para cada sensor, normalizando los valores (en el código, a una escala de 0 a 1000) para que puedan ser comparados de forma consistente.
+La calibración "enseña" al robot el rango de lecturas para cada sensor, normalizando los valores a una escala de 0 a 1000 para que puedan ser comparados de forma consistente.
 
 ```cpp
-// Lógica de la calibración:
-Para cada sensor:
-1. Encontrar el valor MÍNIMO (sobre blanco) durante el proceso.
-2. Encontrar el valor MÁXIMO (sobre negro) durante el proceso.
+// Lógica de calibración:
+Para cada uno de los 5 sensores:
+1. Encontrar el valor MÍNIMO (sobre blanco) → ~100-300 ADC
+2. Encontrar el valor MÁXIMO (sobre negro) → ~1800-2200 ADC
 
-// En tiempo real, el valor leído se mapea usando esos mínimos y máximos.
-valor_calibrado = map(valor_actual, mínimo_aprendido, máximo_aprendido, 0, 1000)
+// En tiempo real, se normaliza:
+valor_normalizado = map(valor_actual, min_calibrado, max_calibrado, 0, 1000)
 ```
+
+### 1.3 Valores Esperados (HW-511)
+
+| Superficie | Valor ADC (12-bit) | Descripción |
+|------------|-------------------|-------------|
+| **BLANCO** | ~100-300 | Máxima reflexión IR |
+| **NEGRO** | ~1800-2200 | Mínima reflexión IR |
+| **Rango ideal** | >1500 | Diferencia entre negro y blanco |
 
 ---
 
@@ -51,87 +60,250 @@ valor_calibrado = map(valor_actual, mínimo_aprendido, máximo_aprendido, 0, 100
 
 ### 2.1 Requisitos de la Pista
 
-- **Fondo:** Blanco y MATE. Evita superficies brillantes.
-- **Línea:** Negra y MATE. La cinta aislante negra funciona bien. Ancho ideal: 1.5 - 2.5 cm.
-- **Iluminación:** Luz artificial uniforme. **Evita la luz solar directa**, ya que interfiere con los sensores IR.
+- **Fondo:** Blanco y MATE. Evita superficies brillantes (pueden saturar los sensores)
+- **Línea:** Negra y MATE. Cinta aislante negra funciona bien
+  - **Ancho recomendado:** 1.5 - 2.5 cm
+  - **Material:** Vinilo negro mate o cinta aislante
+- **Iluminación:** Luz artificial uniforme
+  - ⚠️ **EVITA luz solar directa** (interfiere con IR)
 
-### 2.2 Verificación Pre-Calibración
+### 2.2 Montaje Físico de Sensores
 
-- **Altura de los sensores:** Entre 2 y 10 mm del suelo. Un buen punto de partida es **5 mm**.
-- **Alineación:** Los 3 sensores deben estar a la misma altura y paralelos al suelo.
-- **Conexiones:** Asegúrate de que los sensores estén conectados a los GPIO 3, 4 y 5.
+**Configuración del array (5 sensores):**
+```
+[S1]  [S2]  [S3]  [S4]  [S5]
+IZQ+2 IZQ+1 CEN  DER+1 DER+2
+GPIO6 GPIO5 GPIO4 GPIO8 GPIO7
+```
+
+**Verificación pre-calibración:**
+- ✅ **Altura:** 3-8 mm del suelo (óptimo: 5mm para HW-511)
+- ✅ **Alineación:** TODOS los sensores a la misma altura y paralelos
+- ✅ **Separación:** Distribución uniforme en el ancho del robot
+- ✅ **Conexiones:**
+  - VCC → 5V (desde L298N)
+  - GND → GND común
+  - OUT → GPIOs correspondientes
+- ✅ **Pines ADC:** NO usar `pinMode()` (el código ya está corregido)
+
+### 2.3 Test Rápido Pre-Calibración
+
+Ejecuta el test de pines para verificar lecturas:
+
+```bash
+# Desde PlatformIO, sube el test
+pio run -t upload --environment test_pines_adc
+```
+
+Deberías ver valores fluctuantes para cada sensor. Si ves `0` o `4095` constante, hay un problema de conexión.
 
 ---
 
 ## 3. Proceso de Calibración
 
-### 3.1 Calibración Automática
+### 3.1 Calibración Automática (8 segundos)
 
 #### Paso 1: Iniciar Calibración
 
-1.  Coloca el robot en la pista.
-2.  Conecta el ESP32 a tu PC y abre el **Monitor Serial** (baudrate 115200).
-3.  Envía el comando `c` y presiona Enter.
+1. Conecta el ESP32-S3 a tu PC
+2. Abre el **Monitor Serial** (baudrate: 115200)
+3. Carga el programa principal (`src/main.cpp`)
+4. Envía el comando `c` y presiona Enter
 
-Verás un mensaje indicando que la calibración ha comenzado y una cuenta regresiva de 8 segundos.
+Verás:
+```
+======================================
+INICIANDO CALIBRACIÓN DE SENSORES
+======================================
+Mueva el robot sobre blanco y negro durante 8 segundos...
+Calibrando... 7 segundos restantes
+```
 
-#### Paso 2: Mover el Robot (Paso Crítico)
+#### Paso 2: Movimiento Durante Calibración (CRÍTICO)
 
-Durante los 8 segundos, debes **mover manualmente** el robot sobre la pista de manera que los 3 sensores pasen repetidamente sobre la superficie blanca y la línea negra.
+Durante los 8 segundos, debes **mover manualmente** el robot asegurando que:
 
-**Movimiento recomendado:**
-- **Segundos 0-4:** Mueve el robot lentamente de lado a lado sobre la **línea negra**, asegurándote de que los sensores izquierdo y derecho también pasen por encima de la línea.
-- **Segundos 4-8:** Haz lo mismo sobre la **superficie blanca** al lado de la línea.
+**Estrategia de movimiento:**
+```
+Segundos 0-4: FASE NEGRO
+  → Mueve el robot sobre la LÍNEA NEGRA
+  → Asegúrate de que LOS 5 SENSORES pasen sobre el negro
+  → Movimientos lentos de lado a lado
 
-> **El objetivo es que cada sensor registre su lectura más alta (sobre el negro) y su lectura más baja (sobre el blanco).**
+Segundos 4-8: FASE BLANCO
+  → Mueve el robot sobre la SUPERFICIE BLANCA
+  → Asegúrate de que LOS 5 SENSORES pasen sobre el blanco
+  → Movimientos lentos de lado a lado
+```
+
+**Movimiento correcto:**
+```
+    [S1][S2][S3][S4][S5]
+         Robot
+           ↓
+    ═══════════════════  ← Línea negra
+    ░░░░░░░░░░░░░░░░░░░  ← Fondo blanco
+
+    Mover: ← → ← → ← →
+    Asegurar que TODOS los sensores vean ambas superficies
+```
+
+> ⚠️ **IMPORTANTE:** Si algún sensor NO ve el negro o el blanco durante la calibración, tendrá un rango muy pequeño y causará errores.
 
 #### Paso 3: Verificar Resultados
 
-Al terminar, el monitor serial mostrará los valores de calibración. Deberías ver algo así:
+Al terminar, verás los valores calibrados:
 
 ```
+======================================
 CALIBRACIÓN COMPLETADA
-========================================
+======================================
+VALORES DE CALIBRACIÓN
 
-VALORES DE CALIBRACIÓN:
-
-Sensores Cercanos (5 cm):  <-- (Ignora el nombre, son tus 3 sensores)
-Sensor | Min  | Max  | Rango
--------|------|------|-------
-  0    | 120  | 2950 | 2830  ✓ BUENO
-  1    | 110  | 3100 | 2990  ✓ BUENO
-  2    | 135  | 2890 | 2755  ✓ BUENO
+Sensor | MIN   | MAX   | Rango | Estado
+-------|-------|-------|-------|--------
+S1 (6) |  120  | 2050  | 1930  | ✓ EXCELENTE
+S2 (5) |  105  | 2100  | 1995  | ✓ EXCELENTE
+S3 (4) |  135  | 1980  | 1845  | ✓ BUENO
+S4 (8) |  118  | 2075  | 1957  | ✓ EXCELENTE
+S5 (7) |  142  | 2020  | 1878  | ✓ BUENO
 ```
 
-Un **Rango (Max - Min) grande** (idealmente > 1500) indica una buena calibración y un buen contraste entre la línea y el fondo.
+**Interpretación:**
+- ✅ **Rango > 1500:** Excelente calibración
+- ⚠️ **Rango 1000-1500:** Aceptable, considera recalibrar
+- ❌ **Rango < 1000:** Mala calibración, DEBE recalibrarse
 
 ---
 
 ## 4. Verificación de Calibración
 
-Después de calibrar, puedes hacer una prueba rápida:
+### 4.1 Test Estático
 
-1.  Coloca el robot con el **sensor central justo sobre la línea negra**.
-2.  Envía el comando `ts` (test sensores).
-3.  La lectura del sensor central debería ser alta (cercana a su `Max`), y las de los sensores izquierdo y derecho deberían ser bajas (cercanas a su `Min`). El `Error` calculado debería ser cercano a `0`.
-4.  Mueve el robot para que la línea quede bajo el **sensor izquierdo**.
-5.  La lectura del sensor izquierdo debería ser alta y el `Error` debería ser un valor negativo (ej. `-100`).
+Después de calibrar, verifica manualmente:
 
-Si esto funciona, ¡la calibración fue un éxito!
+**Test 1: Línea al centro**
+```bash
+# Envía el comando
+ts
+```
+
+Coloca el robot con **sensor 3 (centro) sobre la línea negra**:
+```
+Valores esperados:
+S1: Bajo (~100-300)   [sobre blanco]
+S2: Bajo (~100-300)   [sobre blanco]
+S3: Alto (~1800-2200) [sobre negro] ← ¡Centro!
+S4: Bajo (~100-300)   [sobre blanco]
+S5: Bajo (~100-300)   [sobre blanco]
+
+Error calculado: ~0 (centrado)
+```
+
+**Test 2: Línea a la izquierda**
+
+Mueve el robot para que la línea quede bajo **sensor 1**:
+```
+Valores esperados:
+S1: Alto (~1800-2200) [sobre negro] ← ¡Izquierda!
+S2-S5: Bajo (~100-300) [sobre blanco]
+
+Error calculado: ~-200 (muy a la izquierda)
+```
+
+**Test 3: Línea a la derecha**
+
+Mueve el robot para que la línea quede bajo **sensor 5**:
+```
+Valores esperados:
+S1-S4: Bajo (~100-300) [sobre blanco]
+S5: Alto (~1800-2200) [sobre negro] ← ¡Derecha!
+
+Error calculado: ~+200 (muy a la derecha)
+```
+
+### 4.2 Test Dinámico
+
+Envía el comando `p` para ver el cálculo de posición en tiempo real:
+```bash
+# Comando
+p
+```
+
+Mueve lentamente el robot sobre la línea. Deberías ver el error cambiar suavemente de -200 a +200 según la posición.
 
 ---
 
 ## 5. Problemas Comunes
 
-| Síntoma | Causa Probable | Solución Rápida |
-|---|---|---|
-| **El rango de calibración es muy bajo (< 1000)** | El sensor no vio bien el blanco y el negro, o la pista tiene mal contraste. | Recalibra moviendo más el robot. Usa una superficie más mate. |
-| **Un sensor siempre lee 0 o 4095** | Sensor desconectado, mal alimentado o dañado. | Revisa el cableado (VCC, GND, Señal) de ese sensor. |
-| **El robot se comporta erráticamente** | La iluminación del ambiente cambió o la calibración fue deficiente. | Recalibra en las condiciones de luz actuales. |
-| **Oscila mucho** | Esto suele ser un problema de PID, no de calibración. | Revisa la guía de `tuning_pid.md`. |
+| Síntoma | Causa Probable | Solución |
+|---------|----------------|----------|
+| **Rango < 1000 en todos los sensores** | Poca altura de sensores o mala superficie | Acerca sensores a 3-5mm. Usa superficie más mate |
+| **Rango < 1000 en UN sensor** | Ese sensor no vio bien el negro/blanco durante calibración | Recalibra asegurando que TODOS vean ambas superficies |
+| **Sensor siempre lee 0** | Pin desconectado o sensor sin VCC | Verifica conexión VCC, GND, OUT del sensor |
+| **Sensor siempre lee 4095** | Sensor saturado (muy cerca) o mal configurado | Aleja sensor a 5mm. Verifica que NO haya `pinMode()` |
+| **Valores muy inestables** | Interferencia o cables largos | Usa cables cortos y trenzados. Aleja de motores |
+| **Robot oscila después de calibrar** | Problema de PID, NO de calibración | Ver [tuning_pid.md](tuning_pid.md) |
+| **Se sale en curvas** | Velocidad muy alta o PID bajo | Reduce velocidad con `v 100`, luego ajusta PID |
+
+---
+
+## 6. Herramientas de Diagnóstico
+
+### 6.1 Usando `test_pines_adc.ino`
+
+Herramienta para verificar lecturas ADC sin calibración:
+
+```bash
+# Sube el test
+pio run -t upload --environment test_pines_adc
+
+# Verás salida como:
+IZQ+2(G6): 105 | IZQ+1(G5): 112 | CENTRO(G4): 108 | DER+1(G8): 120 | DER+2(G7): 118 |
+```
+
+**Sobre blanco:** Todos los valores deben estar entre 80-300
+**Sobre negro:** Todos los valores deben estar entre 1700-2300
+
+### 6.2 Usando `test_sensores.ino`
+
+Herramienta avanzada con múltiples comandos:
+
+```bash
+# Comandos útiles:
+l  - Lectura continua de valores RAW
+v  - Ver valores detallados con min/max
+c  - Calibración guiada
+b  - Detección binaria visual (█ = negro, ░ = blanco)
+s  - Test de sensibilidad (detecta defectuosos)
+e  - Test de estabilidad (mide ruido)
+```
+
+### 6.3 Comandos del Programa Principal
+
+```bash
+# Desde main.cpp:
+c     - Iniciar calibración automática (8s)
+ts    - Test sensores en tiempo real
+s     - Ver estado completo del sistema
+r     - Reset calibración
+```
+
+---
+
+## 📊 Checklist Final
+
+Antes de navegar, verifica:
+
+- [ ] Todos los 5 sensores tienen rango > 1500
+- [ ] Test estático: error = 0 cuando línea está al centro
+- [ ] Test estático: error negativo cuando línea a la izquierda
+- [ ] Test estático: error positivo cuando línea a la derecha
+- [ ] No hay sensores con lectura constante 0 o 4095
+- [ ] Iluminación es estable (no luz solar directa)
 
 ---
 
 **Siguiente paso:** [tuning_pid.md](tuning_pid.md) para optimizar el control del robot.
 
-**Última actualización:** 2025-11-05
+**Última actualización:** 2025-01-06
