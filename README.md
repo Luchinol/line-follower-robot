@@ -1,16 +1,19 @@
 # 🤖 Robot Seguidor de Línea - ESP32-S3
 
+Prueba de commit
+
+
 Sistema de seguimiento de línea autónomo con **ESP32-S3**, **5 sensores IR** y **control PID adaptativo**. Diseñado para máxima precisión y estabilidad en trayectorias complejas.
 
 ## 🎯 Hardware Utilizado
 
-| Componente | Modelo | Cantidad |
-|------------|--------|----------|
-| **Microcontrolador** | ESP32-S3 WROOM (FREENOVE) | 1 |
-| **Sensores IR** | HW-511 (analógicos individuales) | 5 |
-| **Puente H** | L298N | 1 |
-| **Motores DC** | Con reductora 1:48 | 2 |
-| **Batería** | LiPo 2S 7.4V o 6xAA | 1 |
+| Componente                 | Modelo                            | Cantidad |
+| -------------------------- | --------------------------------- | -------- |
+| **Microcontrolador** | ESP32-S3 WROOM (FREENOVE)         | 1        |
+| **Sensores IR**      | HW-511 (analógicos individuales) | 5        |
+| **Puente H**         | L298N                             | 1        |
+| **Motores DC**       | Con reductora 1:48                | 2        |
+| **Batería**         | LiPo 2S 7.4V o 6xAA               | 1        |
 
 ### 📐 Especificaciones de Sensores
 
@@ -81,6 +84,7 @@ pio run -t upload && pio device monitor
 ```
 
 **Valores esperados después de calibración:**
+
 - Sensores sobre BLANCO: ~100-300 ADC
 - Sensores sobre NEGRO: ~1800-2200 ADC
 - Umbral automático: punto medio entre min/max
@@ -91,17 +95,17 @@ El robot iniciará el seguimiento de línea automáticamente después de la cali
 
 ## 🎮 Comandos Seriales
 
-| Comando | Descripción |
-|---|---|
-| `c` | **Iniciar calibración** de sensores. |
-| `s` | Ver **estado** del sistema (estado, velocidad, PID). |
-| `r` | **Reiniciar** el seguimiento de línea. |
-| `d` | Ejecutar un **diagnóstico** de hardware. |
-| `p [Kp] [Ki] [Kd]` | Ajustar los parámetros **PID** en tiempo real. | 
-| `v [vel]` | Cambiar la **velocidad base** del robot (0-255). |
-| `save` | **Guardar** la configuración actual de PID y velocidad en la memoria Flash. |
-| `h` o `?` | Mostrar la lista completa de **ayuda**. |
-| `0` / `1` | Atajos para **pausar** y **reanudar**.|
+| Comando              | Descripción                                                                       |
+| -------------------- | ---------------------------------------------------------------------------------- |
+| `c`                | **Iniciar calibración** de sensores.                                        |
+| `s`                | Ver**estado** del sistema (estado, velocidad, PID).                          |
+| `r`                | **Reiniciar** el seguimiento de línea.                                      |
+| `d`                | Ejecutar un**diagnóstico** de hardware.                                     |
+| `p [Kp] [Ki] [Kd]` | Ajustar los parámetros**PID** en tiempo real.                               |
+| `v [vel]`          | Cambiar la**velocidad base** del robot (0-255).                              |
+| `save`             | **Guardar** la configuración actual de PID y velocidad en la memoria Flash. |
+| `h` o `?`        | Mostrar la lista completa de**ayuda**.                                       |
+| `0` / `1`        | Atajos para**pausar** y **reanudar**.                                  |
 
 **Ejemplo de ajuste:**
 `p 2.5 0.03 0.5` - Ajusta los parámetros PID a los valores por defecto para una recta.
@@ -115,18 +119,21 @@ El robot iniciará el seguimiento de línea automáticamente después de la cali
 El sistema ajusta automáticamente los parámetros PID según la dificultad de la trayectoria:
 
 #### **Modo RECTA** (trayectorias rectas)
+
 - **Kp = 1.2** - Respuesta proporcional suave
 - **Ki = 0.01** - Corrección integral mínima
 - **Kd = 0.8** - Amortiguación para evitar oscilaciones
 - **Velocidad**: 120 PWM (conservadora)
 
 #### **Modo CURVA SUAVE** (curvas graduales)
+
 - **Kp = 1.8** - Mayor respuesta proporcional
 - **Ki = 0.02** - Integral ligeramente mayor
 - **Kd = 1.0** - Mayor amortiguación
 - **Velocidad**: 85% de velocidad base
 
 #### **Modo CURVA CERRADA** (curvas muy pronunciadas)
+
 - **Kp = 2.5** - Respuesta agresiva
 - **Ki = 0.0** - Sin integral (evita wind-up)
 - **Kd = 1.2** - Amortiguación máxima
@@ -135,6 +142,7 @@ El sistema ajusta automáticamente los parámetros PID según la dificultad de l
 ### Algoritmo de Detección de Línea
 
 **5 sensores con pesos espaciales:**
+
 ```
 [-2]  [-1]  [0]  [+1]  [+2]
  IZQ   IZQ  CEN  DER   DER
@@ -142,6 +150,7 @@ El sistema ajusta automáticamente los parámetros PID según la dificultad de l
 ```
 
 **Cálculo de error ponderado:**
+
 ```cpp
 error = Σ(valor_normalizado[i] × peso[i]) / Σ(valor_normalizado[i])
 ```
@@ -149,23 +158,25 @@ error = Σ(valor_normalizado[i] × peso[i]) / Σ(valor_normalizado[i])
 **Rango de error:** -200 (extremo izquierdo) a +200 (extremo derecho)
 
 **Ventajas de 5 sensores:**
+
 - ✅ Mayor resolución espacial (vs 3 sensores)
 - ✅ Mejor anticipación en curvas
 - ✅ Detección más precisa del centro de línea
 - ✅ Permite PID más suave (menos oscilaciones)
 
 ### Persistencia de Configuración (NVS)
+
 Gracias al módulo `nvs_config.h`, puedes ajustar los parámetros PID y la velocidad base a través del monitor serial y guardarlos. No se perderán al apagar el robot.
 
 ## 🐛 Troubleshooting Rápido
 
-| Problema | Solución Sugerida |
-|---|---|
-| **Oscila mucho en la recta** | El parámetro `Kp` es muy alto. Redúcelo con `p [nuevo_kp] [ki] [kd]` y guarda. |
-| **Se sale en las curvas** | La velocidad es muy alta o `Kp` es muy bajo. Prueba bajar la velocidad con `v [nueva_vel]` o subir `Kp`. |
-| **Se mueve erráticamente** | La calibración falló. Recalibra (`c`) asegurándote de que todos los sensores vean bien el blanco y el negro. |
-| **Un motor gira más lento**| Ajusta el `FACTOR_MOTOR_IZQUIERDO` o `FACTOR_MOTOR_DERECHO` en `src/config.h`. |
-| **No responde a comandos** | Verifica que el baudrate del monitor serial sea `115200` y que la línea termine en `NL & CR`. |
+| Problema                           | Solución Sugerida                                                                                                |
+| ---------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| **Oscila mucho en la recta** | El parámetro `Kp` es muy alto. Redúcelo con `p [nuevo_kp] [ki] [kd]` y guarda.                              |
+| **Se sale en las curvas**    | La velocidad es muy alta o `Kp` es muy bajo. Prueba bajar la velocidad con `v [nueva_vel]` o subir `Kp`.    |
+| **Se mueve erráticamente**  | La calibración falló. Recalibra (`c`) asegurándote de que todos los sensores vean bien el blanco y el negro. |
+| **Un motor gira más lento** | Ajusta el `FACTOR_MOTOR_IZQUIERDO` o `FACTOR_MOTOR_DERECHO` en `src/config.h`.                              |
+| **No responde a comandos**   | Verifica que el baudrate del monitor serial sea `115200` y que la línea termine en `NL & CR`.                |
 
 ## 📂 Estructura del Proyecto
 
@@ -200,13 +211,13 @@ CarritoSeguidor/
 
 ### Archivos Clave
 
-| Archivo | Propósito |
-|---------|-----------|
-| **src/config.h** | ⭐ Configuración central: pines GPIO, parámetros PID, velocidades |
-| **src/sensores.h** | Lectura ADC, calibración automática, cálculo de error ponderado |
-| **src/control_pid.h** | PID con 3 modos adaptativos, anti-windup, filtro derivativo |
-| **src/main.cpp** | Máquina de estados, comandos seriales, lógica de navegación |
-| **pruebas/test_pines_adc.ino** | Test rápido para verificar lecturas de los 5 sensores |
+| Archivo                              | Propósito                                                          |
+| ------------------------------------ | ------------------------------------------------------------------- |
+| **src/config.h**               | ⭐ Configuración central: pines GPIO, parámetros PID, velocidades |
+| **src/sensores.h**             | Lectura ADC, calibración automática, cálculo de error ponderado  |
+| **src/control_pid.h**          | PID con 3 modos adaptativos, anti-windup, filtro derivativo         |
+| **src/main.cpp**               | Máquina de estados, comandos seriales, lógica de navegación      |
+| **pruebas/test_pines_adc.ino** | Test rápido para verificar lecturas de los 5 sensores              |
 
 ## 📄 Licencia
 

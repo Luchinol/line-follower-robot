@@ -8,7 +8,10 @@
       "Bash(where.exe:*)",
       "Bash(C:UsersLuchin.platformiopenvScriptsplatformio.exe run)",
       "Bash(dir:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git branch:*)",
+      "Bash(git push:*)"
     ],
     "deny": [],
     "ask": []
