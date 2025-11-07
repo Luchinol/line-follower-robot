@@ -14,9 +14,9 @@
  * - IN1/IN2: Pines GPIO para dirección del motor derecho
  * - IN3/IN4: Pines GPIO para dirección del motor izquierdo
  *
- * Autor: [Tu Nombre]
- * Fecha: 2025-10-29
- * Versión: 1.0.0
+ * Autor: LUCHIN-OPRESORCL
+ * Fecha: 2025-11-07
+ * Versión: 2.0.0
  ******************************************************************************/
 
 #ifndef MOTORES_H
@@ -50,13 +50,45 @@ private:
     /***************************************************************************
      * Mapea velocidad lógica (0-255) a PWM efectivo (102-255)
      *
-     * Elimina la zona muerta (0-40% PWM) donde los motores no giran.
-     * Proporciona control lineal en todo el rango útil.
+     * ¿POR QUÉ ES NECESARIO ESTE MAPEO?
+     * ─────────────────────────────────
+     * Los motores DC con driver L298N tienen una "zona muerta" (dead zone)
+     * entre 0-40% PWM donde:
+     *   ✗ El torque generado < fricción estática del motor
+     *   ✗ Los motores vibran pero NO giran
+     *   ✗ El comportamiento es impredecible y no lineal
+     *   ✗ Desperdicio de energía sin movimiento útil
+     *
+     * SOLUCIÓN IMPLEMENTADA:
+     * ───────────────────────
+     * Mapeamos el rango de usuario (0-255) al rango útil real (40%-100% PWM)
+     *
+     *   Velocidad Usuario  →  PWM Real (12V)  →  Comportamiento
+     *   ─────────────────     ──────────────     ──────────────
+     *         0                    0 (0%)         Motor detenido
+     *         1                  102 (40%)        Velocidad mínima confiable
+     *       128                  178 (70%)        Velocidad media
+     *       255                  255 (100%)       Velocidad máxima
+     *
+     * FÓRMULA DE MAPEO:
+     * ─────────────────
+     *   PWM_real = PWM_MIN_EFECTIVO +
+     *              (velocidad - 1) × (PWM_MAX - PWM_MIN) / 254
+     *
+     * VALORES DEL PROYECTO:
+     *   PWM_MIN_EFECTIVO = 102 (40% de 255)
+     *   PWM_MAX_EFECTIVO = 255 (100%)
+     *
+     * RESULTADO:
+     *   ✓ Control lineal y predecible en todo el rango
+     *   ✓ Eliminación completa de la zona muerta
+     *   ✓ Mayor precisión en velocidades bajas
+     *   ✓ Respuesta consistente del motor
      *
      * Parámetros:
      *   velocidad: Velocidad lógica (0-255)
      *
-     * Retorna: PWM real mapeado al rango efectivo
+     * Retorna: PWM real mapeado al rango efectivo (0 o 102-255)
      ***************************************************************************/
     uint8_t mapearVelocidad(uint8_t velocidad) {
         if (velocidad == 0) return 0;  // Detenido = 0 PWM real
@@ -277,6 +309,68 @@ public:
     }
 
     /***************************************************************************
+     * Giro en pivote con control directo de PWM (bypasea mapeo 40%-100%)
+     *
+     * Esta función permite velocidades por debajo del PWM_MIN_EFECTIVO (40%)
+     * para ejecutar giros en pivote en curvas extremadamente cerradas.
+     *
+     * Parámetros:
+     *   velocidadInterior: Velocidad rueda interior (0-100%)
+     *   velocidadExterior: Velocidad rueda exterior (0-100%)
+     *   giroIzquierda: true = gira a la izquierda, false = gira a la derecha
+     *
+     * IMPORTANTE: Esta función NO aplica el mapeo PWM automático.
+     * Los valores se convierten directamente a PWM (0-255).
+     *
+     * Ejemplo:
+     *   pivote(20, 100, true)  → Giro izquierda: Izq=20%, Der=100%
+     *   pivote(20, 100, false) → Giro derecha: Izq=100%, Der=20%
+     ***************************************************************************/
+    void pivote(uint8_t velocidadInterior, uint8_t velocidadExterior, bool giroIzquierda) {
+        // Convertir porcentajes (0-100) a PWM (0-255)
+        uint8_t pwmInterior = map(velocidadInterior, 0, 100, 0, 255);
+        uint8_t pwmExterior = map(velocidadExterior, 0, 100, 0, 255);
+
+        if (giroIzquierda) {
+            // Giro a la izquierda: Rueda izquierda lenta, derecha rápida
+            // Motor Izquierdo (interior) - velocidad reducida
+            digitalWrite(MOTOR_IZQ_IN3, HIGH);
+            digitalWrite(MOTOR_IZQ_IN4, LOW);
+            ledcWrite(PWM_CHANNEL_IZQ, pwmInterior);
+
+            // Motor Derecho (exterior) - velocidad máxima
+            digitalWrite(MOTOR_DER_IN1, HIGH);
+            digitalWrite(MOTOR_DER_IN2, LOW);
+            ledcWrite(PWM_CHANNEL_DER, pwmExterior);
+
+            velocidadActualIzquierdo = velocidadInterior;  // Guardar valor lógico
+            velocidadActualDerecho = velocidadExterior;
+        } else {
+            // Giro a la derecha: Rueda derecha lenta, izquierda rápida
+            // Motor Izquierdo (exterior) - velocidad máxima
+            digitalWrite(MOTOR_IZQ_IN3, HIGH);
+            digitalWrite(MOTOR_IZQ_IN4, LOW);
+            ledcWrite(PWM_CHANNEL_IZQ, pwmExterior);
+
+            // Motor Derecho (interior) - velocidad reducida
+            digitalWrite(MOTOR_DER_IN1, HIGH);
+            digitalWrite(MOTOR_DER_IN2, LOW);
+            ledcWrite(PWM_CHANNEL_DER, pwmInterior);
+
+            velocidadActualIzquierdo = velocidadExterior;
+            velocidadActualDerecho = velocidadInterior;  // Guardar valor lógico
+        }
+
+        DEBUG_PRINT(DEBUG_MOTORES, "PIVOTE -> ");
+        DEBUG_PRINT(DEBUG_MOTORES, giroIzquierda ? "IZQ" : "DER");
+        DEBUG_PRINT(DEBUG_MOTORES, " | Interior: ");
+        DEBUG_PRINT(DEBUG_MOTORES, velocidadInterior);
+        DEBUG_PRINT(DEBUG_MOTORES, "% | Exterior: ");
+        DEBUG_PRINT(DEBUG_MOTORES, velocidadExterior);
+        DEBUG_PRINTLN(DEBUG_MOTORES, "%");
+    }
+
+    /***************************************************************************
      * Avanza con ambos motores a la misma velocidad
      *
      * Parámetros:
@@ -304,6 +398,49 @@ public:
 
         DEBUG_PRINT(DEBUG_MOTORES, "Retroceder -> Velocidad: ");
         DEBUG_PRINTLN(DEBUG_MOTORES, velocidad);
+    }
+
+    /***************************************************************************
+     * Retrocede con giro (retroceso inteligente para recuperar línea)
+     *
+     * Retrocede girando hacia el lado donde se perdió la línea,
+     * útil para recuperar la pista cuando el robot se pasa de la línea.
+     *
+     * Parámetros:
+     *   velocidad: Velocidad de retroceso (0-255)
+     *   factorGiro: Factor de diferencia entre ruedas (0.5-1.0)
+     *               0.5 = giro muy cerrado, 1.0 = retroceso casi recto
+     *   girarIzquierda: true = retrocede girando a la izquierda
+     *                   false = retrocede girando a la derecha
+     *
+     * Ejemplo:
+     *   retrocederConGiro(100, 0.6, true)
+     *   → Retrocede girando a la izquierda
+     *   → Rueda izquierda: 60 (60% de 100), Rueda derecha: 100
+     ***************************************************************************/
+    void retrocederConGiro(uint8_t velocidad, float factorGiro, bool girarIzquierda) {
+        velocidad = limitarVelocidad(velocidad);
+
+        // Calcular velocidades diferenciales para el giro
+        uint8_t velExterior = velocidad;
+        uint8_t velInterior = (uint8_t)(velocidad * factorGiro);
+
+        if (girarIzquierda) {
+            // Retrocede girando a la izquierda: rueda izq más lenta
+            setMotorIzquierdo(-velInterior);  // Rueda interior
+            setMotorDerecho(-velExterior);     // Rueda exterior
+        } else {
+            // Retrocede girando a la derecha: rueda der más lenta
+            setMotorIzquierdo(-velExterior);   // Rueda exterior
+            setMotorDerecho(-velInterior);     // Rueda interior
+        }
+
+        DEBUG_PRINT(DEBUG_MOTORES, "RetrocesoGiro -> ");
+        DEBUG_PRINT(DEBUG_MOTORES, girarIzquierda ? "IZQ" : "DER");
+        DEBUG_PRINT(DEBUG_MOTORES, " | Interior: ");
+        DEBUG_PRINT(DEBUG_MOTORES, velInterior);
+        DEBUG_PRINT(DEBUG_MOTORES, " | Exterior: ");
+        DEBUG_PRINTLN(DEBUG_MOTORES, velExterior);
     }
 
     /***************************************************************************

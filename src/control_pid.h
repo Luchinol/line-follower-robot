@@ -20,9 +20,9 @@
  *   - Ajuste dinámico de parámetros
  *   - Reset automático en cambios bruscos
  *
- * Autor: [Tu Nombre]
- * Fecha: 2025-10-29
- * Versión: 1.0.0
+ * Autor: LUCHIN-OPRESORCL
+ * Fecha: 2025-11-07
+ * Versión: 2.0.0
  ******************************************************************************/
 
 #ifndef CONTROL_PID_H

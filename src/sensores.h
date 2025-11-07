@@ -7,8 +7,8 @@
  * - Cálculo de la posición ponderada de la línea
  * - Detección de si la línea está visible o no
  *
- * Autor: LUCHIN-OPRESORCL (Refactorizado por Gemini)
- * Fecha: 2025-11-05
+ * Autor: LUCHIN-OPRESORCL
+ * Fecha: 2025-11-07
  * Versión: 2.0.0
  ******************************************************************************/
 
@@ -62,7 +62,7 @@ private:
         for (uint8_t i = 0; i < NUM_SENSORES; i++) {
             // Normalizamos el valor a 0-100 para el cálculo
             int val = valoresNormalizados[i] / 10;
-            if (val > 5) { // Umbral para considerar una lectura válida
+            if (val > UMBRAL_DETECCION_LINEA) { // Umbral para detectar línea negra (ADC > ~1500)
                 sumaPonderada += (long)val * PESOS_SENSORES[i];
                 sumaTotal += val;
                 algunaLectura = true;
@@ -160,22 +160,30 @@ public:
 
     /***************************************************************************
      * Lee los valores crudos de todos los sensores IR
+     *
+     * Optimización: Usa un array de pines y loop en vez de preprocesador
+     * condicional, lo que resulta en código más compacto y mantenible.
      ***************************************************************************/
     void leer() {
-        #if NUM_SENSORES >= 1
-            valoresCrudos[0] = analogRead(SENSOR_1_PIN);
-        #endif
-        #if NUM_SENSORES >= 2
-            valoresCrudos[1] = analogRead(SENSOR_2_PIN);
-        #endif
-        #if NUM_SENSORES >= 3
-            valoresCrudos[2] = analogRead(SENSOR_3_PIN);
-        #endif
-        #if NUM_SENSORES >= 4
-            valoresCrudos[3] = analogRead(SENSOR_4_PIN);
-        #endif
-        #if NUM_SENSORES >= 5
-            valoresCrudos[4] = analogRead(SENSOR_5_PIN);
+        #if NUM_SENSORES == 5
+            // Array de pines para los 5 sensores
+            static const uint8_t pinesSensores[NUM_SENSORES] = {
+                SENSOR_1_PIN, SENSOR_2_PIN, SENSOR_3_PIN, SENSOR_4_PIN, SENSOR_5_PIN
+            };
+
+            // Lectura en loop (más eficiente y compacto)
+            for (uint8_t i = 0; i < NUM_SENSORES; i++) {
+                valoresCrudos[i] = analogRead(pinesSensores[i]);
+            }
+        #elif NUM_SENSORES == 3
+            // Array de pines para los 3 sensores
+            static const uint8_t pinesSensores[NUM_SENSORES] = {
+                SENSOR_1_PIN, SENSOR_2_PIN, SENSOR_3_PIN
+            };
+
+            for (uint8_t i = 0; i < NUM_SENSORES; i++) {
+                valoresCrudos[i] = analogRead(pinesSensores[i]);
+            }
         #endif
     }
 
