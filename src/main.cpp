@@ -94,9 +94,8 @@ ConfiguracionNVS configNVS;                 // Gestor de configuración persiste
  * VARIABLES GLOBALES
  ******************************************************************************/
 
-// Parámetros PID modificables en runtime (inicializados con valores por defecto)
+// Parámetros PID modificables en runtime (SIMPLIFICADO - 2 MODOS)
 PIDParams PID_RECTA = {PID_RECTA_DEFAULT_KP, PID_RECTA_DEFAULT_KI, PID_RECTA_DEFAULT_KD};
-PIDParams PID_CURVA_SUAVE = {PID_SUAVE_DEFAULT_KP, PID_SUAVE_DEFAULT_KI, PID_SUAVE_DEFAULT_KD};
 PIDParams PID_CURVA_CERRADA = {PID_CERRADA_DEFAULT_KP, PID_CERRADA_DEFAULT_KI, PID_CERRADA_DEFAULT_KD};
 bool pidAdaptativoActivo = true;  // Por defecto, el PID adaptativo está activo
 
@@ -462,16 +461,14 @@ void estadoSeguirLinea() {
         pid.ajustarParametros(curvatura);
     }
 
-    // 7. Calcular velocidad adaptativa según curvatura
+    // 7. Calcular velocidad adaptativa según curvatura (SIMPLIFICADO - 2 NIVELES)
     uint8_t velocidadActual = velocidadBase;
 
     if (curvatura >= UMBRAL_CURVA_CERRADA) {
         // Curva cerrada: reducir a 60% velocidad base
         velocidadActual = velocidadBase * FACTOR_VEL_CURVA_CERRADA;
-    } else if (curvatura >= UMBRAL_CURVA_SUAVE) {
-        // Curva suave: reducir a 85% velocidad base
-        velocidadActual = velocidadBase * FACTOR_VEL_CURVA_SUAVE;
     }
+    // Si curvatura < UMBRAL_CURVA_CERRADA → usa velocidadBase (100%)
 
     // 8. Calcular corrección del PID usando error FILTRADO
     // Esto reduce oscilaciones causadas por ruido en sensores
@@ -911,7 +908,7 @@ void ejecutarComando(String cmd) {
         String args = cmd.substring(cmd.indexOf(' ') + 1);
         args.trim();
 
-        // Detectar si el primer argumento es un modo (recta/suave/cerrada)
+        // Detectar si el primer argumento es un modo (recta/cerrada)
         bool esModoEspecifico = false;
         PIDParams* modoTarget = nullptr;
         String nombreModo = "";
@@ -921,11 +918,6 @@ void ejecutarComando(String cmd) {
             modoTarget = &PID_RECTA;
             nombreModo = "RECTA";
             args = args.substring(6); // Remover "recta "
-        } else if (args.startsWith("suave ")) {
-            esModoEspecifico = true;
-            modoTarget = &PID_CURVA_SUAVE;
-            nombreModo = "CURVA_SUAVE";
-            args = args.substring(6); // Remover "suave "
         } else if (args.startsWith("cerrada ")) {
             esModoEspecifico = true;
             modoTarget = &PID_CURVA_CERRADA;
@@ -989,7 +981,6 @@ void ejecutarComando(String cmd) {
             Serial.println("  p <Kp> <Ki>                → Mantiene Kd actual");
             Serial.println("  p <Kp>                     → Mantiene Ki y Kd actuales");
             Serial.println("  p recta <Kp> <Ki> <Kd>    → Modifica modo RECTA");
-            Serial.println("  p suave <Kp> <Ki> <Kd>    → Modifica modo CURVA_SUAVE");
             Serial.println("  p cerrada <Kp> <Ki> <Kd>  → Modifica modo CURVA_CERRADA");
             Serial.println("\n💡 Ejemplo: p 2.0 0.1 1.5  o  p recta 1.0 0.005 0.5");
         }
@@ -998,15 +989,12 @@ void ejecutarComando(String cmd) {
     // Comando: pa - Activar PID adaptativo
     else if (cmd == "pa" || cmd == "adaptativo") {
         pidAdaptativoActivo = true;
-        Serial.println("✓ Modo PID ADAPTATIVO activado");
+        Serial.println("✓ Modo PID ADAPTATIVO activado (2 modos)");
         Serial.println("  Los parámetros cambiarán según curvatura:");
-        Serial.print("  - RECTA:       Kp="); Serial.print(PID_RECTA.Kp, 3);
+        Serial.print("  - RECTA:         Kp="); Serial.print(PID_RECTA.Kp, 3);
         Serial.print(" Ki="); Serial.print(PID_RECTA.Ki, 3);
         Serial.print(" Kd="); Serial.println(PID_RECTA.Kd, 3);
-        Serial.print("  - CURVA_SUAVE: Kp="); Serial.print(PID_CURVA_SUAVE.Kp, 3);
-        Serial.print(" Ki="); Serial.print(PID_CURVA_SUAVE.Ki, 3);
-        Serial.print(" Kd="); Serial.println(PID_CURVA_SUAVE.Kd, 3);
-        Serial.print("  - CURVA_CERR:  Kp="); Serial.print(PID_CURVA_CERRADA.Kp, 3);
+        Serial.print("  - CURVA_CERRADA: Kp="); Serial.print(PID_CURVA_CERRADA.Kp, 3);
         Serial.print(" Ki="); Serial.print(PID_CURVA_CERRADA.Ki, 3);
         Serial.print(" Kd="); Serial.println(PID_CURVA_CERRADA.Kd, 3);
     }
@@ -1077,27 +1065,21 @@ void ejecutarComando(String cmd) {
         Serial.println("│ Modo         │   Kp   │   Ki   │   Kd   │");
         Serial.println("├──────────────┼────────┼────────┼────────┤");
 
-        Serial.print("│ RECTA        │ ");
+        Serial.print("│ RECTA          │ ");
         Serial.print(PID_RECTA.Kp, 3); Serial.print(" │ ");
         Serial.print(PID_RECTA.Ki, 3); Serial.print(" │ ");
         Serial.print(PID_RECTA.Kd, 3); Serial.println(" │");
 
-        Serial.print("│ CURVA_SUAVE  │ ");
-        Serial.print(PID_CURVA_SUAVE.Kp, 3); Serial.print(" │ ");
-        Serial.print(PID_CURVA_SUAVE.Ki, 3); Serial.print(" │ ");
-        Serial.print(PID_CURVA_SUAVE.Kd, 3); Serial.println(" │");
-
-        Serial.print("│ CURVA_CERR.  │ ");
+        Serial.print("│ CURVA_CERRADA  │ ");
         Serial.print(PID_CURVA_CERRADA.Kp, 3); Serial.print(" │ ");
         Serial.print(PID_CURVA_CERRADA.Ki, 3); Serial.print(" │ ");
         Serial.print(PID_CURVA_CERRADA.Kd, 3); Serial.println(" │");
 
-        Serial.println("└──────────────┴────────┴────────┴────────┘");
+        Serial.println("└────────────────┴────────┴────────┴────────┘");
         Serial.println();
 
-        // Mostrar umbrales de curvatura
-        Serial.println("🔄 UMBRALES DE CURVATURA:");
-        Serial.print("  Curva suave  : > "); Serial.println(UMBRAL_CURVA_SUAVE);
+        // Mostrar umbral de curvatura
+        Serial.println("🔄 UMBRAL DE CURVATURA:");
         Serial.print("  Curva cerrada: > "); Serial.println(UMBRAL_CURVA_CERRADA);
         Serial.println();
         Serial.println("⚡ AMPLIFICACIÓN DE CORRECCIÓN:");
@@ -1110,11 +1092,12 @@ void ejecutarComando(String cmd) {
         // Opciones según estado
         if (estadoActual == PAUSADO) {
             Serial.println("\n💡 Opciones disponibles:");
-            Serial.println("  'resume' / '1'     → Continuar");
-            Serial.println("  'p <Kp> <Ki> <Kd>' → PID manual");
-            Serial.println("  'p recta <...>'    → Ajustar modo RECTA");
-            Serial.println("  'pa'               → Activar PID adaptativo");
-            Serial.println("  'v <vel>'          → Cambiar velocidad");
+            Serial.println("  'resume' / '1'       → Continuar");
+            Serial.println("  'p <Kp> <Ki> <Kd>'   → PID manual");
+            Serial.println("  'p recta <...>'      → Ajustar modo RECTA");
+            Serial.println("  'p cerrada <...>'    → Ajustar modo CURVA_CERRADA");
+            Serial.println("  'pa'                 → Activar PID adaptativo");
+            Serial.println("  'v <vel>'            → Cambiar velocidad");
         }
         Serial.println();
     }
@@ -1368,15 +1351,12 @@ void ejecutarComando(String cmd) {
             uint16_t curvatura = (uint16_t)(abs(errorFiltradoFinal) * PESO_ERROR_CURVATURA +
                                              tasaCambio * PESO_TASA_CAMBIO_CURVATURA);
 
-            // Determinar modo PID
+            // Determinar modo PID (SIMPLIFICADO - 2 MODOS)
             const char* modoPID;
             uint8_t velPorcentaje;
             if (curvatura >= UMBRAL_CURVA_CERRADA) {
                 modoPID = "CERRADA";
                 velPorcentaje = FACTOR_VEL_CURVA_CERRADA * 100;
-            } else if (curvatura >= UMBRAL_CURVA_SUAVE) {
-                modoPID = "SUAVE";
-                velPorcentaje = FACTOR_VEL_CURVA_SUAVE * 100;
             } else {
                 modoPID = "RECTA";
                 velPorcentaje = 100;
@@ -1457,13 +1437,12 @@ void mostrarAyuda() {
     Serial.println("  stop / detener     - Detener completamente");
     Serial.println();
     Serial.println("⚙️  CONFIGURACIÓN PID:");
-    Serial.println("  p <Kp> <Ki> <Kd>         - PID manual (fijo)");
-    Serial.println("  p <Kp> <Ki>              - Modifica Kp y Ki (mantiene Kd)");
-    Serial.println("  p <Kp>                   - Modifica solo Kp");
-    Serial.println("  p recta <Kp> <Ki> <Kd>  - Ajusta modo RECTA");
-    Serial.println("  p suave <Kp> <Ki> <Kd>  - Ajusta modo CURVA_SUAVE");
-    Serial.println("  p cerrada <Kp> <Ki> <Kd> - Ajusta modo CURVA_CERRADA");
-    Serial.println("  pa / adaptativo          - Activa PID adaptativo");
+    Serial.println("  p <Kp> <Ki> <Kd>           - PID manual (fijo)");
+    Serial.println("  p <Kp> <Ki>                - Modifica Kp y Ki (mantiene Kd)");
+    Serial.println("  p <Kp>                     - Modifica solo Kp");
+    Serial.println("  p recta <Kp> <Ki> <Kd>    - Ajusta modo RECTA");
+    Serial.println("  p cerrada <Kp> <Ki> <Kd>  - Ajusta modo CURVA_CERRADA");
+    Serial.println("  pa / adaptativo            - Activa PID adaptativo (2 modos)");
     Serial.println();
     Serial.println("⚙️  OTROS AJUSTES:");
     Serial.println("  v <velocidad>      - Cambiar velocidad base (0-255)");

@@ -71,7 +71,6 @@ private:
     // Modo de operación actual
     enum ModoPID {
         MODO_RECTA,
-        MODO_CURVA_SUAVE,
         MODO_CURVA_CERRADA
     };
     ModoPID modoActual;
@@ -187,16 +186,13 @@ public:
      * Parámetros:
      *   curvatura: Valor de curvatura (0-800 típico)
      *
-     * Estrategias:
-     *   - RECTA (curvatura < 50):
+     * Estrategias (SIMPLIFICADO - 2 MODOS):
+     *   - RECTA (curvatura < UMBRAL_CURVA_CERRADA):
      *       • Control suave y estable
      *       • Usa integral para corregir error persistente
+     *       • Mejor para rectas y curvas suaves
      *
-     *   - CURVA_SUAVE (50 ≤ curvatura < 150):
-     *       • Mayor respuesta proporcional
-     *       • Más anticipación con derivada
-     *
-     *   - CURVA_CERRADA (curvatura ≥ 150):
+     *   - CURVA_CERRADA (curvatura ≥ UMBRAL_CURVA_CERRADA):
      *       • Máxima agresividad
      *       • Sin integral (evita wind-up en curvas)
      *       • Máxima derivada para anticipar
@@ -204,19 +200,13 @@ public:
     void ajustarParametros(uint16_t curvatura) {
         ModoPID modoNuevo;
 
-        // Determinar modo según curvatura
-        if (curvatura < UMBRAL_CURVA_SUAVE) {
-            // RECTA
+        // Determinar modo según curvatura (SOLO 2 MODOS)
+        if (curvatura < UMBRAL_CURVA_CERRADA) {
+            // RECTA (incluye curvas suaves)
             modoNuevo = MODO_RECTA;
             Kp = PID_RECTA.Kp;
             Ki = PID_RECTA.Ki;
             Kd = PID_RECTA.Kd;
-        } else if (curvatura < UMBRAL_CURVA_CERRADA) {
-            // CURVA SUAVE
-            modoNuevo = MODO_CURVA_SUAVE;
-            Kp = PID_CURVA_SUAVE.Kp;
-            Ki = PID_CURVA_SUAVE.Ki;
-            Kd = PID_CURVA_SUAVE.Kd;
         } else {
             // CURVA CERRADA
             modoNuevo = MODO_CURVA_CERRADA;
@@ -234,9 +224,6 @@ public:
             switch (modoActual) {
                 case MODO_RECTA:
                     DEBUG_PRINTLN(DEBUG_PID, "RECTA");
-                    break;
-                case MODO_CURVA_SUAVE:
-                    DEBUG_PRINTLN(DEBUG_PID, "CURVA_SUAVE");
                     break;
                 case MODO_CURVA_CERRADA:
                     DEBUG_PRINTLN(DEBUG_PID, "CURVA_CERRADA");
@@ -395,7 +382,6 @@ public:
     const char* obtenerModoActual() {
         switch (modoActual) {
             case MODO_RECTA:         return "RECTA";
-            case MODO_CURVA_SUAVE:   return "CURVA_SUAVE";
             case MODO_CURVA_CERRADA: return "CURVA_CERRADA";
             default:                 return "DESCONOCIDO";
         }

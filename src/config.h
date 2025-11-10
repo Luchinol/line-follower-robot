@@ -152,19 +152,16 @@ struct PIDParams {
 // Parámetros PID optimizados para 5 sensores
 // Usando todos los sensores (GPIOs 6, 5, 4, 8, 7)
 // Valores de sensores: BLANCO ~100 ADC, NEGRO ~2000 ADC
-// Rango de error: -400 a +400 (con pesos: -4, -1, 0, 1, 4)
+// Rango de error: -400 a +400 (con pesos: -5, -1, 0, 1, 5)
 //                 Negativo = línea a la IZQ, Positivo = línea a la DER
-//                 Los extremos tienen 100% más peso para mejor respuesta en curvas
+//                 Los extremos tienen peso exponencial para mejor respuesta en curvas
 // NOTA: Estos parámetros son modificables en runtime con el comando 'p'
 
+// SISTEMA SIMPLIFICADO: SOLO 2 MODOS PID
 // Valores por defecto para cada modo (se restauran al reiniciar)
 #define PID_RECTA_DEFAULT_KP    1.0
 #define PID_RECTA_DEFAULT_KI    0.005
 #define PID_RECTA_DEFAULT_KD    0.5
-
-#define PID_SUAVE_DEFAULT_KP    1.8
-#define PID_SUAVE_DEFAULT_KI    0.02
-#define PID_SUAVE_DEFAULT_KD    1.0
 
 #define PID_CERRADA_DEFAULT_KP  2.5
 #define PID_CERRADA_DEFAULT_KI  0.0
@@ -172,7 +169,6 @@ struct PIDParams {
 
 // Variables globales modificables (inicializadas en main.cpp)
 extern PIDParams PID_RECTA;
-extern PIDParams PID_CURVA_SUAVE;
 extern PIDParams PID_CURVA_CERRADA;
 extern bool pidAdaptativoActivo;  // true = modo adaptativo, false = modo manual
 
@@ -242,7 +238,7 @@ extern bool pidAdaptativoActivo;  // true = modo adaptativo, false = modo manual
  * NOTA: Si cambias los motores, debes RE-CALIBRAR estos valores.
  ******************************************************************************/
 #define FACTOR_MOTOR_DERECHO   1.00   // Baseline (motor de referencia)
-#define FACTOR_MOTOR_IZQUIERDO 1.13   // +13% compensación (motor más débil)
+#define FACTOR_MOTOR_IZQUIERDO 1.08   // +08% compensación (motor más débil)
 
 // Límites de corrección PID
 #define CORRECCION_MAX      100   // Máxima corrección que puede aplicar el PID (valor absoluto)
@@ -253,8 +249,7 @@ extern bool pidAdaptativoActivo;  // true = modo adaptativo, false = modo manual
 // Si el error es menor que esto, se ignora (evita zigzagueo por ruido)
 #define ERROR_DEADBAND      5     // Ignorar errores menores a ±5
 
-// Factor de reducción de velocidad según curvatura
-#define FACTOR_VEL_CURVA_SUAVE    0.85  // Reducir a 85% en curvas suaves
+// Factor de reducción de velocidad según curvatura (SIMPLIFICADO - SOLO CURVA CERRADA)
 #define FACTOR_VEL_CURVA_CERRADA  0.60  // Reducir a 60% en curvas cerradas
 
 // Amplificador de corrección para errores grandes (transición gradual)
@@ -268,8 +263,8 @@ extern bool pidAdaptativoActivo;  // true = modo adaptativo, false = modo manual
 // Giro en pivote para curvas extremadamente cerradas (horquillas 180°)
 // Cuando solo los sensores extremos detectan la línea, activar pivote
 #define UMBRAL_GIRO_CRITICO       350   // Error crítico: solo sensores extremos activos (87.5% del máximo)
-#define VELOCIDAD_PIVOTE_INTERIOR 0     // Velocidad rueda interior: 0% = DETENIDA (pivote puro)
-#define VELOCIDAD_PIVOTE_EXTERIOR 80    // Velocidad rueda exterior: 80% = ~200 PWM (giro controlado)
+#define VELOCIDAD_PIVOTE_INTERIOR 15    // Velocidad rueda interior: 15% = 38 PWM (pivote asistido, reduce fricción)
+#define VELOCIDAD_PIVOTE_EXTERIOR 85    // Velocidad rueda exterior: 85% = 217 PWM (giro agresivo controlado)
 
 /*******************************************************************************
  * PARÁMETROS DE SENSORES
@@ -283,26 +278,24 @@ extern bool pidAdaptativoActivo;  // true = modo adaptativo, false = modo manual
 #define MUESTRAS_CALIBRACION 100  // Número de muestras para calibración
 
 /*******************************************************************************
- * PARÁMETROS DE DETECCIÓN DE CURVATURA
+ * PARÁMETROS DE DETECCIÓN DE CURVATURA (SIMPLIFICADO - 2 MODOS)
  *
  * La curvatura se calcula combinando dos factores:
  * curvatura = abs(error) * PESO_ERROR_CURVATURA + tasaCambio * PESO_TASA_CAMBIO
  *
  * Donde:
- * - abs(error): Magnitud de desviación (-300 a +300)
+ * - abs(error): Magnitud de desviación (-400 a +400)
  * - tasaCambio: Velocidad con que cambia el error (anticipación)
  *
- * AJUSTE PARA PISTA CON CURVAS PRONUNCIADAS:
- * Umbrales más sensibles para activar modo agresivo antes
+ * SISTEMA SIMPLIFICADO: Solo 2 modos (RECTA y CURVA_CERRADA)
  ******************************************************************************/
 
 // Pesos para cálculo de curvatura
 #define PESO_ERROR_CURVATURA       0.7    // 70% peso al error absoluto
 #define PESO_TASA_CAMBIO_CURVATURA 0.3    // 30% peso a la tasa de cambio
 
-// Umbrales de curvatura para cambio de modo PID
-#define UMBRAL_CURVA_SUAVE      80    // Si curvatura > 80: curva suave
-#define UMBRAL_CURVA_CERRADA    140   // Si curvatura > 140: curva cerrada
+// Umbral de curvatura para cambio de modo PID (SIMPLIFICADO)
+#define UMBRAL_CURVA_CERRADA    140   // Si curvatura ≥ 140: CURVA_CERRADA, sino: RECTA
 
 // Factor de filtro exponencial para el error
 #define ALPHA_FILTRO_ERROR      0.7   // 70% nuevo, 30% histórico (suaviza ruido)
