@@ -182,10 +182,10 @@ extern bool pidAdaptativoActivo;  // true = modo adaptativo, false = modo manual
 #define VELOCIDAD_BASE      120   // Velocidad base en recta (0-255 lógico) - Muy conservadora
 #define VELOCIDAD_MIN       30    // Velocidad mínima útil (será mapeada a ~40% PWM)
 #define VELOCIDAD_MAX       255   // Velocidad máxima (mapeada a 100% PWM)
-#define VELOCIDAD_CURVA     90    // Velocidad reducida en curvas cerradas - Extra conservadora
+#define VELOCIDAD_CURVA     120    // Velocidad reducida en curvas cerradas - Extra conservadora
 
 // Rango efectivo de PWM físico (elimina zona muerta 0-40%)
-#define PWM_MIN_EFECTIVO    102   // 40% de 255 = punto de arranque real de motores
+#define PWM_MIN_EFECTIVO    130   // 40% de 255 = punto de arranque real de motores
 #define PWM_MAX_EFECTIVO    255   // 100% máximo
 
 /*******************************************************************************
@@ -263,8 +263,8 @@ extern bool pidAdaptativoActivo;  // true = modo adaptativo, false = modo manual
 // Giro en pivote para curvas extremadamente cerradas (horquillas 180°)
 // Cuando solo los sensores extremos detectan la línea, activar pivote
 #define UMBRAL_GIRO_CRITICO       350   // Error crítico: solo sensores extremos activos (87.5% del máximo)
-#define VELOCIDAD_PIVOTE_INTERIOR 15    // Velocidad rueda interior: 15% = 38 PWM (pivote asistido, reduce fricción)
-#define VELOCIDAD_PIVOTE_EXTERIOR 85    // Velocidad rueda exterior: 85% = 217 PWM (giro agresivo controlado)
+#define VELOCIDAD_PIVOTE_INTERIOR 10    // Velocidad rueda interior: 15% = 38 PWM (pivote asistido, reduce fricción)
+#define VELOCIDAD_PIVOTE_EXTERIOR 90    // Velocidad rueda exterior: 85% = 217 PWM (giro agresivo controlado)
 
 /*******************************************************************************
  * PARÁMETROS DE SENSORES
