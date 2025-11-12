@@ -103,59 +103,59 @@ El robot iniciará el seguimiento de línea automáticamente después de la cali
 
 ### Comandos de Control
 
-| Comando              | Descripción                                                 |
-| -------------------- | ----------------------------------------------------------- |
-| `0`                | **Pausar** robot (atajo rápido)                             |
-| `1`                | **Reanudar** operación (atajo rápido)                       |
-| `pause` / `pausa` | Pausar robot (detiene motores)                              |
-| `resume` / `continuar` | Reanudar operación                                    |
-| `stop` / `detener` | Detener completamente                                      |
+| Comando                    | Descripción                                  |
+| -------------------------- | --------------------------------------------- |
+| `0`                      | **Pausar** robot (atajo rápido)        |
+| `1`                      | **Reanudar** operación (atajo rápido) |
+| `pause` / `pausa`      | Pausar robot (detiene motores)                |
+| `resume` / `continuar` | Reanudar operación                           |
+| `stop` / `detener`     | Detener completamente                         |
 
 ### Configuración PID
 
-| Comando                      | Descripción                                          |
-| ---------------------------- | ---------------------------------------------------- |
-| `p [Kp] [Ki] [Kd]`         | Ajustar PID RECTA (modo simplificado)               |
-| `p [Kp] [Ki]`              | Modifica Kp y Ki (mantiene Kd actual)                |
-| `p [Kp]`                   | Modifica solo Kp                                     |
-| `pc [Kp] [Ki] [Kd]`        | Ajustar parámetros del modo CURVA_CERRADA           |
-| `pa` / `adaptativo`       | Activar **modo PID ADAPTATIVO** (por defecto)       |
+| Comando                 | Descripción                                       |
+| ----------------------- | -------------------------------------------------- |
+| `p [Kp] [Ki] [Kd]`    | Ajustar PID RECTA (modo simplificado)              |
+| `p [Kp] [Ki]`         | Modifica Kp y Ki (mantiene Kd actual)              |
+| `p [Kp]`              | Modifica solo Kp                                   |
+| `pc [Kp] [Ki] [Kd]`   | Ajustar parámetros del modo CURVA_CERRADA         |
+| `pa` / `adaptativo` | Activar**modo PID ADAPTATIVO** (por defecto) |
 
 ### Otros Ajustes
 
-| Comando         | Descripción                                |
-| --------------- | ------------------------------------------ |
-| `v [velocidad]`| Cambiar velocidad base (30-255)            |
-| `config` / `cfg`| Modo configuración interactiva            |
+| Comando              | Descripción                    |
+| -------------------- | ------------------------------- |
+| `v [velocidad]`    | Cambiar velocidad base (30-255) |
+| `config` / `cfg` | Modo configuración interactiva |
 
 ### Sistema
 
-| Comando              | Descripción                                    |
-| -------------------- | ---------------------------------------------- |
-| `c` / `calibrar`   | Iniciar calibración de sensores                |
-| `s` / `status`     | Mostrar estado del sistema completo            |
-| `r` / `reset`      | Reiniciar sistema                              |
-| `d` / `diagnostico`| Modo diagnóstico de hardware                   |
-| `h` / `?` / `ayuda`| Mostrar ayuda completa                         |
+| Comando                   | Descripción                        |
+| ------------------------- | ----------------------------------- |
+| `c` / `calibrar`      | Iniciar calibración de sensores    |
+| `s` / `status`        | Mostrar estado del sistema completo |
+| `r` / `reset`         | Reiniciar sistema                   |
+| `d` / `diagnostico`   | Modo diagnóstico de hardware       |
+| `h` / `?` / `ayuda` | Mostrar ayuda completa              |
 
 ### Persistencia (NVS - Flash)
 
-| Comando           | Descripción                                       |
-| ----------------- | ------------------------------------------------- |
-| `save` / `guardar`| Guardar config actual en Flash                    |
-| `load` / `cargar` | Recargar config desde Flash                       |
-| `reset_config`    | Restaurar valores por defecto                     |
-| `nvs_info`        | Mostrar información de almacenamiento NVS         |
+| Comando                | Descripción                               |
+| ---------------------- | ------------------------------------------ |
+| `save` / `guardar` | Guardar config actual en Flash             |
+| `load` / `cargar`  | Recargar config desde Flash                |
+| `reset_config`       | Restaurar valores por defecto              |
+| `nvs_info`           | Mostrar información de almacenamiento NVS |
 
 ### Comandos de Test
 
-| Comando | Descripción                                           |
-| ------- | ----------------------------------------------------- |
-| `w`     | Test motores a VELOCIDAD_BASE (adelante)              |
-| `ts`    | Test sensores en tiempo real (presiona 'x' para salir)|
-| `tm`    | Test completo de motores (secuencia 4 pasos)          |
-| `tp`    | Monitor PID en tiempo real (presiona 'x' para salir)  |
-| `tc`    | Monitor detección de curvatura (presiona 'x' para salir)|
+| Comando | Descripción                                              |
+| ------- | --------------------------------------------------------- |
+| `w`   | Test motores a VELOCIDAD_BASE (adelante)                  |
+| `ts`  | Test sensores en tiempo real (presiona 'x' para salir)    |
+| `tm`  | Test completo de motores (secuencia 4 pasos)              |
+| `tp`  | Monitor PID en tiempo real (presiona 'x' para salir)      |
+| `tc`  | Monitor detección de curvatura (presiona 'x' para salir) |
 
 **Ejemplos de uso:**
 
@@ -197,6 +197,7 @@ curvatura = |error_filtrado| × 0.7 + tasa_de_cambio × 0.3
 ```
 
 **Componentes**:
+
 - **Error absoluto (70%)**: Magnitud de desviación actual
 - **Tasa de cambio (30%)**: Velocidad con que cambia el error (derivada)
 
@@ -295,6 +296,7 @@ FACTOR_MOTOR_IZQUIERDO = 1.07   // +7% compensación (motor más débil)
 ```
 
 **Calibración actualizada**: 2025-11-12
+
 - Desviación en 3m: < 5cm
 - Desviación angular: 1.2° (objetivo: <2°)
 - Comportamiento estable en rango 100-200 PWM
@@ -304,6 +306,7 @@ FACTOR_MOTOR_IZQUIERDO = 1.07   // +7% compensación (motor más débil)
 **Problema**: Motores tienen zona muerta 0-51% PWM (no giran)
 
 **Solución**: Mapeo automático
+
 - Usuario: 1-255 → PWM real: 130-255 (51%-100%)
 - Elimina zona muerta completamente
 - Control lineal y predecible
@@ -312,11 +315,13 @@ FACTOR_MOTOR_IZQUIERDO = 1.07   // +7% compensación (motor más débil)
 ### Persistencia de Configuración (NVS)
 
 La configuración se guarda en **memoria Flash** y sobrevive a:
+
 - ✅ Apagados del robot
 - ✅ Reinicios por software
 - ✅ Pérdida de energía
 
 **Valores persistentes**:
+
 - Velocidad base
 - Parámetros PID (Kp, Ki, Kd) para ambos modos
 - Calibración de sensores
@@ -325,26 +330,26 @@ La configuración se guarda en **memoria Flash** y sobrevive a:
 
 ## 🎛️ Botones Físicos
 
-| GPIO | Botón              | Función                |
-| ---- | ------------------ | ---------------------- |
-| 0    | BOOT (onboard)     | Pausar/Reanudar        |
-| 47   | Externo            | Cambiar Modo           |
-| 48   | LED WS2812         | Parada de Emergencia   |
+| GPIO | Botón         | Función             |
+| ---- | -------------- | -------------------- |
+| 0    | BOOT (onboard) | Pausar/Reanudar      |
+| 47   | Externo        | Cambiar Modo         |
+| 48   | LED WS2812     | Parada de Emergencia |
 
 Todos los botones tienen debounce por software (50ms).
 
 ## 🐛 Troubleshooting
 
-| Problema                           | Solución Sugerida                                                                                                |
-| ---------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
-| **Oscila mucho en recta** | `Kp` muy alto. Prueba: `p 0.4 0.0 0.3` y `save`                              |
-| **Se sale en curvas**    | Velocidad alta o `Kp` bajo. Prueba: `v 100` o `pc 2.0 0.0 1.0`                    |
-| **Movimiento errático**  | Mala calibración. Ejecuta `c` y asegúrate de que TODOS los sensores vean blanco y negro |
-| **Un motor más lento** | Ajusta `FACTOR_MOTOR_DERECHO` o `FACTOR_MOTOR_IZQUIERDO` en `src/config.h`              |
-| **No responde comandos**   | Verifica baudrate: `115200` y terminador de línea: `NL & CR`                |
-| **Se pierde en curvas** | Aumenta agresividad de curvas: `pc 2.5 0.0 1.5`                                   |
-| **No detecta línea** | Verifica umbral de detección (debe ser ~74). Usa comando `ts` para ver valores en tiempo real |
-| **Pivote oscilante** | Robot entra y sale de pivote rápidamente. Reduce velocidad: `v 100`           |
+| Problema                        | Solución Sugerida                                                                               |
+| ------------------------------- | ------------------------------------------------------------------------------------------------ |
+| **Oscila mucho en recta** | `Kp` muy alto. Prueba: `p 0.4 0.0 0.3` y `save`                                            |
+| **Se sale en curvas**     | Velocidad alta o `Kp` bajo. Prueba: `v 100` o `pc 2.0 0.0 1.0`                             |
+| **Movimiento errático**  | Mala calibración. Ejecuta `c` y asegúrate de que TODOS los sensores vean blanco y negro      |
+| **Un motor más lento**   | Ajusta `FACTOR_MOTOR_DERECHO` o `FACTOR_MOTOR_IZQUIERDO` en `src/config.h`                 |
+| **No responde comandos**  | Verifica baudrate:`115200` y terminador de línea: `NL & CR`                                 |
+| **Se pierde en curvas**   | Aumenta agresividad de curvas:`pc 2.5 0.0 1.5`                                                 |
+| **No detecta línea**     | Verifica umbral de detección (debe ser ~74). Usa comando `ts` para ver valores en tiempo real |
+| **Pivote oscilante**      | Robot entra y sale de pivote rápidamente. Reduce velocidad:`v 100`                            |
 
 ## 📂 Estructura del Proyecto
 
@@ -372,14 +377,14 @@ CarritoSeguidor/
 
 ### Archivos Clave
 
-| Archivo                  | Propósito                                                          |
-| ------------------------ | ------------------------------------------------------------------- |
-| **src/config.h**   | ⭐ Configuración central: pines GPIO, parámetros PID, velocidades |
-| **src/main.cpp**   | Máquina de estados, comandos seriales, lógica de seguimiento      |
-| **src/sensores.h** | Lectura ADC, calibración automática, cálculo de error ponderado  |
-| **src/control_pid.h** | PID con 2 modos adaptativos, anti-windup, filtro derivativo    |
-| **src/motores.h**  | Control PWM, compensación de motores, mapeo de zona muerta        |
-| **src/nvs_config.h** | Almacenamiento persistente en Flash (NVS)                       |
+| Archivo                     | Propósito                                                          |
+| --------------------------- | ------------------------------------------------------------------- |
+| **src/config.h**      | ⭐ Configuración central: pines GPIO, parámetros PID, velocidades |
+| **src/main.cpp**      | Máquina de estados, comandos seriales, lógica de seguimiento      |
+| **src/sensores.h**    | Lectura ADC, calibración automática, cálculo de error ponderado  |
+| **src/control_pid.h** | PID con 2 modos adaptativos, anti-windup, filtro derivativo         |
+| **src/motores.h**     | Control PWM, compensación de motores, mapeo de zona muerta         |
+| **src/nvs_config.h**  | Almacenamiento persistente en Flash (NVS)                           |
 
 ## 🔬 Características Técnicas Avanzadas
 
@@ -404,6 +409,7 @@ u(t) = Kp·e(t) + Ki·∫e(τ)dτ + Kd·de(t)/dt
 ```
 
 **Protecciones**:
+
 - ✅ Anti-windup en integral (límite: ±1000)
 - ✅ Filtro derivativo (α=0.2) para reducir ruido
 - ✅ Límite de salida: ±100 o 80% de velocidad actual
@@ -541,19 +547,20 @@ c                  # Recalibra sensores
 
 ## 📊 Comparativa ESP32-S3 vs Arduino Uno
 
-| Característica | ESP32-S3 | Arduino Uno | Factor |
-|----------------|----------|-------------|--------|
-| **CPU** | 240 MHz (32-bit) | 16 MHz (8-bit) | 15× |
-| **RAM** | 512 KB | 2 KB | 256× |
-| **Flash** | 8 MB | 32 KB | 250× |
-| **ADC** | 20 canales 12-bit | 6 canales 10-bit | 3.3× + 4× resolución |
-| **PWM** | 16 canales | 6 canales | 2.6× |
-| **UART** | 3 hardware | 1 hardware | 3× |
-| **FPU** | Sí (hardware) | No (software) | 625× más rápido |
-| **WiFi/BT** | Integrados | No | ✅ |
-| **Precio** | $8-12 | $20-25 | 50% más barato |
+| Característica   | ESP32-S3          | Arduino Uno      | Factor                  |
+| ----------------- | ----------------- | ---------------- | ----------------------- |
+| **CPU**     | 240 MHz (32-bit)  | 16 MHz (8-bit)   | 15×                    |
+| **RAM**     | 512 KB            | 2 KB             | 256×                   |
+| **Flash**   | 8 MB              | 32 KB            | 250×                   |
+| **ADC**     | 20 canales 12-bit | 6 canales 10-bit | 3.3× + 4× resolución |
+| **PWM**     | 16 canales        | 6 canales        | 2.6×                   |
+| **UART**    | 3 hardware        | 1 hardware       | 3×                     |
+| **FPU**     | Sí (hardware)    | No (software)    | 625× más rápido      |
+| **WiFi/BT** | Integrados        | No               | ✅                      |
+| **Precio**  | $8-12 | $20-25    | 50% más barato  |                         |
 
 **Veredicto**: Este proyecto **requiere ESP32-S3** debido a:
+
 - ✅ Código 359 KB (no cabe en Arduino: 32 KB)
 - ✅ RAM suficiente (20 KB usado / 512 KB disponible)
 - ✅ FPU para PID flotante eficiente
@@ -583,9 +590,10 @@ MIT License - Ver [LICENSE](LICENSE) para más detalles.
 ## 👨‍💻 Autor
 
 **LUCHIN-OPRESORCL**
-- Versión: 2.0.0
-- Fecha última actualización: 2025-11-12
-- GitHub: [Tu repositorio]
+
+- Versión: 2.0.1
+- Fecha última actualización: 2025-11-11
+- GitHub: Luchinol
 
 ---
 
