@@ -63,15 +63,17 @@
 ================================================================================
 
 ┌──────────────────────────────────────────────────────────────────────────┐
-│          ARRAY SIMPLIFICADO (3 SENSORES) - 3x HW-511 individuales        │
+│          ARRAY COMPLETO (5 SENSORES) - 5x HW-511 individuales           │
 │                    Configuración actual del proyecto                     │
 └──────────────────────────────────────────────────────────────────────────┘
 
     ESP32-S3       Sensor    Posición             Peso    Tipo ADC
     ════════       ══════    ════════             ════    ════════
-    GPIO 3  ──────► SENSOR  (Izquierdo)            -1     ADC1_CH2 ✅
+    GPIO 6  ──────► SENSOR  (Extremo Izquierdo)    -5     ADC1_CH5 ✅
+    GPIO 5  ──────► SENSOR  (Izquierdo)            -1     ADC1_CH4 ✅
     GPIO 4  ──────► SENSOR  (Centro)                0     ADC1_CH3 ✅
-    GPIO 5  ──────► SENSOR  (Derecho)              +1     ADC1_CH4 ✅
+    GPIO 8  ──────► SENSOR  (Derecho)              +1     ADC1_CH7 ✅
+    GPIO 7  ──────► SENSOR  (Extremo Derecho)      +5     ADC1_CH6 ✅
 
                        Cada sensor HW-511:
                        ┌──────────────┐
@@ -82,7 +84,7 @@
 
     ALIMENTACIÓN DE SENSORES:
     ═════════════════════════
-    Todos los sensores (3x HW-511):
+    Todos los sensores (5x HW-511):
         VCC ◄─── L298N 5V o ESP32 5V
         GND ◄─── GND común
         A0  ───► GPIO correspondiente ESP32-S3
@@ -97,12 +99,12 @@
                                   │
     ┌─────────────────────────────────────────────────────────┐
     │                                                         │
-    │         Array de Sensores (3x HW-511)                   │
-    │         ┌───┐      ┌───┐      ┌───┐                   │
-    │         │ S │      │ S │      │ S │                   │
-    │         └───┘      └───┘      └───┘                   │
-    │         GPIO3      GPIO4      GPIO5                   │
-    │          -1          0          +1      ← Pesos       │
+    │         Array de Sensores (5x HW-511)                   │
+    │    ┌───┐   ┌───┐   ┌───┐   ┌───┐   ┌───┐            │
+    │    │ S │   │ S │   │ S │   │ S │   │ S │            │
+    │    └───┘   └───┘   └───┘   └───┘   └───┘            │
+    │    GPIO6   GPIO5   GPIO4   GPIO8   GPIO7             │
+    │     -5      -1       0      +1      +5   ← Pesos    │
     │                                                         │
     │                ┌───────────────┐                       │
     │                │  ESP32-S3     │                       │
@@ -141,10 +143,12 @@
   □ GPIO 14 → IN3 (Dirección Motor Izquierdo)
   □ GPIO 21 → IN4 (Dirección Motor Izquierdo)
 
-□ SENSORES IR (3x HW-511):
-  □ GPIO 3  → Sensor Izquierdo (A0)
+□ SENSORES IR (5x HW-511):
+  □ GPIO 6  → Sensor Extremo Izquierdo (A0)
+  □ GPIO 5  → Sensor Izquierdo (A0)
   □ GPIO 4  → Sensor Central (A0)
-  □ GPIO 5  → Sensor Derecho (A0)
+  □ GPIO 8  → Sensor Derecho (A0)
+  □ GPIO 7  → Sensor Extremo Derecho (A0)
 
 □ ALIMENTACIÓN:
   □ Batería 7.4V → L298N (+12V)
@@ -153,7 +157,7 @@
   □ GND común conectado a: ESP32, L298N, sensores, batería.
 
 ================================================================================
-Versión: 1.1.0 (Simplificada)
-Fecha: 2025-11-05
-Autor: LUCHIN-OPRESORCL (Actualizado por Gemini)
+Versión: 2.0.1
+Fecha: 2025-11-11
+Autor: LUCHIN-OPRESORCL (Luchinol)
 ================================================================================

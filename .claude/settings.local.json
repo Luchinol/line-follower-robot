@@ -12,7 +12,12 @@
       "Bash(git commit:*)",
       "Bash(git branch:*)",
       "Bash(git push:*)",
-      "Bash(C:UsersLuchin.platformiopenvScriptsplatformio.exe run:*)"
+      "Bash(C:UsersLuchin.platformiopenvScriptsplatformio.exe run:*)",
+      "Bash(pandoc:*)",
+      "Bash(pip install:*)",
+      "Bash(python:*)",
+      "Bash(powershell.exe -Command \"Get-ChildItem ''C:\\Users\\Luchin\\.platformio\\penv\\Scripts\\platformio.exe''\")",
+      "Bash(powershell.exe -Command \"& ''C:\\Users\\Luchin\\.platformio\\penv\\Scripts\\platformio.exe'' run\")"
     ],
     "deny": [],
     "ask": []

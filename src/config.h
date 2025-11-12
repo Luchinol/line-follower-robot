@@ -21,8 +21,8 @@
  * - Compatible con Arduino IDE: "ESP32S3 Dev Module"
  *
  * Autor: LUCHIN-OPRESORCL
- * Fecha: 2025-11-07
- * Versión: 2.0.0
+ * Fecha: 2025-11-11
+ * Versión: 2.0.1
  ******************************************************************************/
 
 #ifndef CONFIG_H
@@ -159,13 +159,13 @@ struct PIDParams {
 
 // SISTEMA SIMPLIFICADO: SOLO 2 MODOS PID
 // Valores por defecto para cada modo (se restauran al reiniciar)
-#define PID_RECTA_DEFAULT_KP    1.0
-#define PID_RECTA_DEFAULT_KI    0.005
+#define PID_RECTA_DEFAULT_KP    0.6
+#define PID_RECTA_DEFAULT_KI    0.0
 #define PID_RECTA_DEFAULT_KD    0.5
 
-#define PID_CERRADA_DEFAULT_KP  2.5
+#define PID_CERRADA_DEFAULT_KP  1.5
 #define PID_CERRADA_DEFAULT_KI  0.0
-#define PID_CERRADA_DEFAULT_KD  1.2
+#define PID_CERRADA_DEFAULT_KD  0.8
 
 // Variables globales modificables (inicializadas en main.cpp)
 extern PIDParams PID_RECTA;
@@ -176,16 +176,14 @@ extern bool pidAdaptativoActivo;  // true = modo adaptativo, false = modo manual
  * PARÁMETROS DE VELOCIDAD Y MOTORES
  ******************************************************************************/
 
-// Velocidades (escala 0-255 PWM lógico, mapeado a 40%-100% PWM real)
+// Velocidades (escala 0-255 PWM lógico, mapeado a 51%-100% PWM real)
 // NOTA: Con 12V de alimentación y mapeo automático al rango útil
-// AJUSTADO PARA 5 SENSORES: Velocidades conservadoras para pruebas iniciales
-#define VELOCIDAD_BASE      120   // Velocidad base en recta (0-255 lógico) - Muy conservadora
-#define VELOCIDAD_MIN       30    // Velocidad mínima útil (será mapeada a ~40% PWM)
+#define VELOCIDAD_BASE      140   // Velocidad base en recta (0-255 lógico)
+#define VELOCIDAD_MIN       35    // Velocidad mínima útil (mapeada a 51% PWM)
 #define VELOCIDAD_MAX       255   // Velocidad máxima (mapeada a 100% PWM)
-#define VELOCIDAD_CURVA     120    // Velocidad reducida en curvas cerradas - Extra conservadora
 
-// Rango efectivo de PWM físico (elimina zona muerta 0-40%)
-#define PWM_MIN_EFECTIVO    130   // 40% de 255 = punto de arranque real de motores
+// Rango efectivo de PWM físico (elimina zona muerta 0-51%)
+#define PWM_MIN_EFECTIVO    130   // 51% de 255 = punto de arranque real de motores
 #define PWM_MAX_EFECTIVO    255   // 100% máximo
 
 /*******************************************************************************
@@ -224,7 +222,7 @@ extern bool pidAdaptativoActivo;  // true = modo adaptativo, false = modo manual
  * VALORES ACTUALES (Calibrados: 2025-11-07):
  * ────────────────────────────────────────────
  * - Motor Derecho:   Factor 1.00 (baseline, sin compensación)
- * - Motor Izquierdo: Factor 1.13 (+13% compensación)
+ * - Motor Izquierdo: Factor 1.07 (+07% compensación)
  *
  * INTERPRETACIÓN:
  *   El motor izquierdo es físicamente más débil que el derecho.
@@ -238,7 +236,7 @@ extern bool pidAdaptativoActivo;  // true = modo adaptativo, false = modo manual
  * NOTA: Si cambias los motores, debes RE-CALIBRAR estos valores.
  ******************************************************************************/
 #define FACTOR_MOTOR_DERECHO   1.00   // Baseline (motor de referencia)
-#define FACTOR_MOTOR_IZQUIERDO 1.08   // +08% compensación (motor más débil)
+#define FACTOR_MOTOR_IZQUIERDO 1.07   // +07% compensación (motor más débil)
 
 // Límites de corrección PID
 #define CORRECCION_MAX      100   // Máxima corrección que puede aplicar el PID (valor absoluto)
@@ -250,7 +248,7 @@ extern bool pidAdaptativoActivo;  // true = modo adaptativo, false = modo manual
 #define ERROR_DEADBAND      5     // Ignorar errores menores a ±5
 
 // Factor de reducción de velocidad según curvatura (SIMPLIFICADO - SOLO CURVA CERRADA)
-#define FACTOR_VEL_CURVA_CERRADA  0.60  // Reducir a 60% en curvas cerradas
+#define FACTOR_VEL_CURVA_CERRADA  0.50  // Reducir a 60% en curvas cerradas
 
 // Amplificador de corrección para errores grandes (transición gradual)
 // En lugar de detener una rueda, amplificamos la corrección del PID
@@ -262,9 +260,9 @@ extern bool pidAdaptativoActivo;  // true = modo adaptativo, false = modo manual
 
 // Giro en pivote para curvas extremadamente cerradas (horquillas 180°)
 // Cuando solo los sensores extremos detectan la línea, activar pivote
-#define UMBRAL_GIRO_CRITICO       350   // Error crítico: solo sensores extremos activos (87.5% del máximo)
-#define VELOCIDAD_PIVOTE_INTERIOR 10    // Velocidad rueda interior: 15% = 38 PWM (pivote asistido, reduce fricción)
-#define VELOCIDAD_PIVOTE_EXTERIOR 90    // Velocidad rueda exterior: 85% = 217 PWM (giro agresivo controlado)
+#define UMBRAL_GIRO_CRITICO       350   // Error crítico: solo sensores extremos activos (70% del máximo)
+#define VELOCIDAD_PIVOTE_INTERIOR 10    // Velocidad rueda interior: 10% PWM (pivote asistido, reduce fricción)
+#define VELOCIDAD_PIVOTE_EXTERIOR 90    // Velocidad rueda exterior: 90% PWM (giro agresivo controlado)
 
 /*******************************************************************************
  * PARÁMETROS DE SENSORES
@@ -337,7 +335,7 @@ extern bool pidAdaptativoActivo;  // true = modo adaptativo, false = modo manual
 enum EstadoRobot {
     CALIBRANDO,          // Calibrando sensores
     SIGUIENDO_LINEA,     // Siguiendo la línea normalmente
-    PERDIDA_LINEA,       // Línea perdida temporalmente (< 500ms)
+    PERDIDA_LINEA,       // Línea perdida temporalmente (< 1500ms)
     BUSCANDO_LINEA,      // Buscando activamente la línea (girando)
     PAUSADO,             // Robot pausado (motores detenidos, esperando ajustes)
     CONFIGURACION,       // Modo de configuración interactiva

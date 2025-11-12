@@ -64,8 +64,8 @@
  *   - 2x Motores DC con reductora
  *
  * Autor: LUCHIN-OPRESORCL
- * Fecha: 2025-11-07
- * Versión: 2.0.0
+ * Fecha: 2025-11-11
+ * Versión: 2.0.1
  ******************************************************************************/
 
 #include <Arduino.h>
@@ -204,9 +204,9 @@ void setup() {
     Serial.println("========================================");
     Serial.println("   CARRITO SEGUIDOR DE LÍNEA ESP32");
     Serial.println("========================================");
-    Serial.println("Versión: 1.0.0");
-    Serial.println("Autor: LUCHIN-OPRESORCL");
-    Serial.println("Fecha: 2025-10-29");
+    Serial.println("Versión: 2.0.1");
+    Serial.println("Autor: LUCHIN-OPRESORCL (Luchinol)");
+    Serial.println("Fecha: 2025-11-11");
     Serial.println("========================================\n");
 
     // Mostrar información del sistema
